@@ -1,0 +1,7 @@
+[sources.docker]
+type = "docker_logs"
+
+[sinks.console]
+inputs = ["docker"]
+type = "console"
+encoding.codec = "json"

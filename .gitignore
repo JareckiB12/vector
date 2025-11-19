@@ -1,0 +1,16 @@
+# System files
+.DS_Store
+
+# Logs
+*.log
+
+# Temporary files
+tmp/
+*.b64
+config.toml
+
+# Vector data
+vector_data/
+
+# Environment variables
+.env

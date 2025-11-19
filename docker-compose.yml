@@ -1,0 +1,25 @@
+version: '3.8'
+
+services:
+  vector:
+    image: timberio/vector:latest-alpine
+    deploy:
+      mode: global
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    environment:
+      - VECTOR_CONFIG=/etc/vector/vector.toml
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    configs:
+      - source: vector_config
+        target: /etc/vector/vector.toml
+
+configs:
+  vector_config:
+    file: ./vector.toml

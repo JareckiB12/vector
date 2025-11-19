@@ -12,14 +12,67 @@ services:
         reservations:
           cpus: '0.1'
           memory: 128M
-    environment:
-      - VECTOR_CONFIG=/etc/vector/vector.toml
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
     configs:
       - source: vector_config
-        target: /etc/vector/vector.toml
+        target: /etc/vector/vector.yaml
+
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yaml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '1'
+          memory: 1G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+    ports:
+      - "9090:9090"
+    volumes:
+      - prometheus_data:/prometheus
+    configs:
+      - source: prometheus_config
+        target: /etc/prometheus/prometheus.yaml
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yaml'
+      - '--storage.path=/alertmanager'
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+        reservations:
+          cpus: '0.1'
+          memory: 128M
+    ports:
+      - "9093:9093"
+    volumes:
+      - alertmanager_data:/alertmanager
+    configs:
+      - source: alertmanager_config
+        target: /etc/alertmanager/alertmanager.yaml
+
+volumes:
+  prometheus_data:
+  alertmanager_data:
 
 configs:
   vector_config:
-    file: ./vector.toml
+    file: ./vector.yaml
+  prometheus_config:
+    file: ./prometheus.yaml
+  alertmanager_config:
+    file: ./alertmanager.yaml

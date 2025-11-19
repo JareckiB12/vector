@@ -3,9 +3,13 @@ services:
     image: timberio/vector:latest-alpine
     container_name: vector
     restart: unless-stopped
+    ports:
+      - "9598:9598"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./vector.yaml:/etc/vector/vector.yaml:ro
+    networks:
+      - monitoring
 
   prometheus:
     image: prom/prometheus:latest
@@ -22,6 +26,10 @@ services:
     volumes:
       - ./prometheus.yaml:/etc/prometheus/prometheus.yaml:ro
       - prometheus_data:/prometheus
+    networks:
+      - monitoring
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"
 
   alertmanager:
     image: prom/alertmanager:latest
@@ -35,6 +43,12 @@ services:
     volumes:
       - ./alertmanager.yaml:/etc/alertmanager/alertmanager.yaml:ro
       - alertmanager_data:/alertmanager
+    networks:
+      - monitoring
+
+networks:
+  monitoring:
+    driver: bridge
 
 volumes:
   prometheus_data:

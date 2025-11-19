@@ -1,10 +1,14 @@
 api:
   enabled: true
-  address: 0.0.0.0:9598
+  address: 0.0.0.0:8686
+  playground: true
 
 sources:
   docker:
     type: docker_logs
+  
+  internal_metrics:
+    type: internal_metrics
 
 sinks:
   console:
@@ -13,3 +17,9 @@ sinks:
     type: console
     encoding:
       codec: json
+  
+  prometheus_exporter:
+    type: prometheus_exporter
+    inputs:
+      - internal_metrics
+    address: 0.0.0.0:9598

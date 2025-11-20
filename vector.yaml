@@ -10,6 +10,27 @@ sources:
   internal_metrics:
     type: internal_metrics
 
+transforms:
+  # Filtruj logi zawierające "hello-world"
+  filter_hello_world:
+    type: filter
+    inputs:
+      - docker
+    condition:
+      type: vrl
+      source: contains(string!(.message), "hello-world")
+  
+  # Zlicz przefiltrowane logi jako metrykę
+  hello_world_counter:
+    type: log_to_metric
+    inputs:
+      - filter_hello_world
+    metrics:
+      - type: counter
+        field: message
+        name: hello_world_occurrences_total
+        # namespace: custom # dodaje taki przedrostek do metryki
+
 sinks:
   console:
     inputs:
@@ -22,4 +43,5 @@ sinks:
     type: prometheus_exporter
     inputs:
       - internal_metrics
+      - hello_world_counter
     address: 0.0.0.0:9598

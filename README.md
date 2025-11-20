@@ -37,7 +37,7 @@ graph LR
 1. **Clone the repository:**
    ```bash
    git clone <repository-url>
-   cd tyrka_logs_platform
+   cd vector
    ```
 
 2. **Start the stack:**

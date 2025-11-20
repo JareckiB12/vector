@@ -1,13 +1,38 @@
 services:
-  vector:
+  vector-agent:
     image: timberio/vector:latest-alpine
-    container_name: vector
+    container_name: vector-agent
     restart: unless-stopped
     ports:
       - "9598:9598"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./vector.yaml:/etc/vector/vector.yaml:ro
+      - ./vector-agent.yaml:/etc/vector/vector.yaml:ro
+    depends_on:
+      - vector-aggregator-1
+      - vector-aggregator-2
+    networks:
+      - monitoring
+
+  vector-aggregator-1:
+    image: timberio/vector:latest-alpine
+    container_name: vector-aggregator-1
+    restart: unless-stopped
+    ports:
+      - "9599:9598" # Expose metrics on a different host port
+    volumes:
+      - ./vector-aggregator.yaml:/etc/vector/vector.yaml:ro
+    networks:
+      - monitoring
+
+  vector-aggregator-2:
+    image: timberio/vector:latest-alpine
+    container_name: vector-aggregator-2
+    restart: unless-stopped
+    ports:
+      - "9601:9598" # Expose metrics on a different host port
+    volumes:
+      - ./vector-aggregator.yaml:/etc/vector/vector.yaml:ro
     networks:
       - monitoring
 

@@ -1,0 +1,74 @@
+api:
+  enabled: true
+  address: 0.0.0.0:8686
+
+sources:
+  vector_agent:
+    type: vector
+    address: 0.0.0.0:9000
+
+  internal_metrics:
+    type: internal_metrics
+
+transforms:
+  # Filter logs containing "hello-world"
+  filter_hello_world:
+    type: filter
+    inputs:
+      - vector_agent
+    condition:
+      type: vrl
+      source: contains(string!(.message), "hello-world")
+  
+  # Count filtered logs as a metric
+  hello_world_counter:
+    type: log_to_metric
+    inputs:
+      - filter_hello_world
+    metrics:
+      - type: counter
+        field: message
+        name: hello_world_occurrences_total
+  
+  # Transform data for OpenSearch to avoid conflicts
+  opensearch_prep:
+    type: remap
+    inputs:
+      - vector_agent
+    source: |
+      # Remove nested labels which cause conflicts
+      if exists(.label) {
+        del(.label)
+      }
+
+sinks:
+  prometheus_exporter:
+    type: prometheus_exporter
+    inputs:
+      - internal_metrics
+      - hello_world_counter
+    address: 0.0.0.0:9598
+
+  minio:
+    type: aws_s3
+    inputs:
+      - vector_agent
+    bucket: logs
+    endpoint: http://minio:9000
+    region: us-east-1
+    auth:
+      access_key_id: minioadmin
+      secret_access_key: minioadmin
+    encoding:
+      codec: json
+
+  opensearch:
+    type: elasticsearch
+    inputs:
+      - opensearch_prep
+    endpoints:
+      - http://opensearch:9200
+    api_version: v8
+    mode: bulk
+    bulk:
+      index: "logs-%Y-%m-%d"

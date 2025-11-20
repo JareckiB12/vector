@@ -1,0 +1,29 @@
+api:
+  enabled: true
+  address: 0.0.0.0:8686
+
+sources:
+  docker:
+    type: docker_logs
+
+  internal_metrics:
+    type: internal_metrics
+
+sinks:
+  aggregator_1:
+    type: vector
+    inputs:
+      - docker
+    address: vector-aggregator-1:9000
+
+  aggregator_2:
+    type: vector
+    inputs:
+      - docker
+    address: vector-aggregator-2:9000
+
+  prometheus_exporter:
+    type: prometheus_exporter
+    inputs:
+      - internal_metrics
+    address: 0.0.0.0:9598

@@ -19,7 +19,11 @@ scrape_configs:
     static_configs:
       - targets: ['localhost:9090']
 
-  - job_name: 'vector'
+  - job_name: 'vector-agent'
     static_configs:
-      - targets: ['vector:9598']
+      - targets: ['vector-agent:9598']
+
+  - job_name: 'vector-aggregator'
+    static_configs:
+      - targets: ['vector-aggregator-1:9598', 'vector-aggregator-2:9598']
       # - targets: ['host.docker.internal:9598']

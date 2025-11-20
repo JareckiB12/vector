@@ -8,14 +8,18 @@ This platform collects logs from Docker containers, processes them using Vector,
 
 ### Components
 
-- **[Vector](https://vector.dev/)**: High-performance observability data pipeline.
+- **[Vector Agent](https://vector.dev/)**: Runs on every node (simulated in Docker Compose).
   - Collects Docker logs.
+  - Forwards logs to the Vector Aggregator cluster.
+  - Exposes internal metrics for Prometheus scraping.
+- **[Vector Aggregator](https://vector.dev/)**: Centralized log processing cluster (2 instances).
+  - Receives logs from Vector Agents.
   - Filters logs containing specific keywords (e.g., "hello-world").
   - Generates custom metrics (counters) from log events.
   - Exposes metrics for Prometheus scraping.
   - Sends logs to Minio (S3) and OpenSearch.
 - **[Prometheus](https://prometheus.io/)**: Systems monitoring and alerting toolkit.
-  - Scrapes metrics from Vector and its own internal metrics.
+  - Scrapes metrics from Vector Agents, Vector Aggregators, and its own internal metrics.
   - Stores time-series data.
 - **[Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/)**: Handles alerts sent by client applications such as Prometheus.
 - **[Minio](https://min.io/)**: S3-compatible object storage.
@@ -32,10 +36,12 @@ This platform collects logs from Docker containers, processes them using Vector,
 
 ```mermaid
 graph LR
-    Docker[Docker Containers] -- Logs --> Vector
-    Vector -- Metrics (Scrape) --> Prometheus
-    Vector -- Logs (S3) --> Minio
-    Vector -- Logs (Bulk) --> OpenSearch
+    Docker[Docker Containers] -- Logs --> VectorAgent[Vector Agent]
+    VectorAgent -- Logs --> VectorAgg[Vector Aggregator Cluster]
+    VectorAgg -- Metrics (Scrape) --> Prometheus
+    VectorAgent -- Metrics (Scrape) --> Prometheus
+    VectorAgg -- Logs (S3) --> Minio
+    VectorAgg -- Logs (Bulk) --> OpenSearch
     Prometheus -- Alerts --> Alertmanager
 ```
 
@@ -76,8 +82,9 @@ graph LR
 
 | Service | URL | Description |
 |---------|-----|-------------|
-| **Vector API** | `http://localhost:8686` | Vector GraphQL API & Playground |
-| **Vector Metrics** | `http://localhost:9598/metrics` | Raw metrics exposed by Vector |
+| **Vector Agent Metrics** | `http://localhost:9598/metrics` | Raw metrics exposed by Vector Agent |
+| **Vector Aggregator 1 Metrics** | `http://localhost:9599/metrics` | Raw metrics exposed by Vector Aggregator 1 |
+| **Vector Aggregator 2 Metrics** | `http://localhost:9601/metrics` | Raw metrics exposed by Vector Aggregator 2 |
 | **Prometheus** | `http://localhost:9090` | Prometheus Web UI |
 | **Alertmanager** | `http://localhost:9093` | Alertmanager Web UI |
 | **Minio Console** | `http://localhost:9001` | Minio Web Console (minioadmin/minioadmin) |
@@ -87,18 +94,25 @@ graph LR
 
 ## ⚙️ Configuration
 
-### Vector (`vector.yaml`)
+### Vector Agent (`vector-agent.yaml`)
 Configured to:
 - Read logs from the Docker socket.
+- Forward logs to `vector-aggregator-1` and `vector-aggregator-2`.
+- Expose internal metrics on port 9598.
+
+### Vector Aggregator (`vector-aggregator.yaml`)
+Configured to:
+- Receive logs from Vector Agent on port 9000.
 - **Transform**: Filters logs containing `"hello-world"`.
 - **Metric Generation**: Counts occurrences of "hello-world" and exposes them as `hello_world_occurrences_total`.
 - **Sinks**:
   - **Minio**: Stores logs in S3 bucket `logs` (JSON format, gzip compressed).
   - **OpenSearch**: Indexes logs in daily indices `logs-YYYY-MM-DD`.
-  - **Prometheus Exporter**: Exposes metrics on port 9598.
+  - **Prometheus Exporter**: Exposes metrics on port 9598 (mapped to 9599 and 9601 on host).
 
 ### Prometheus (`prometheus.yaml`)
-- Scrapes Vector metrics from `vector:9598`.
+- Scrapes Vector Agent metrics from `vector-agent:9598`.
+- Scrapes Vector Aggregator metrics from `vector-aggregator-1:9598` and `vector-aggregator-2:9598`.
 - Scrapes its own metrics.
 - Connects to Alertmanager.
 

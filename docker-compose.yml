@@ -98,7 +98,7 @@ services:
       minio:
         condition: service_healthy
     entrypoint: >
-      /bin/sh -c " /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin; /usr/bin/mc mb myminio/logs --ignore-existing; /usr/bin/mc anonymous set public myminio/logs; exit 0; "
+      /bin/sh -c " /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;      /usr/bin/mc mb myminio/logs --ignore-existing; /usr/bin/mc mb myminio/snapshots --ignore-existing; /usr/bin/mc anonymous set public myminio/logs; exit 0; "
     networks:
       - monitoring
 
@@ -107,8 +107,10 @@ services:
     container_name: opensearch
     environment:
       - discovery.type=single-node
+      - node.roles=cluster_manager,data,ingest,warm
+      - node.search.cache.size=1gb
       - bootstrap.memory_lock=true # along with the memlock settings below, disables swapping
-      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m -Dopensearch.experimental.feature.searchable_snapshot.enabled=true" # minimum and maximum Java heap size, recommend setting both to 50% of system RAM
       - plugins.security.disabled=true
       - OPENSEARCH_INITIAL_ADMIN_PASSWORD=StrongPassword123!
     ulimits:
